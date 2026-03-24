@@ -1,8 +1,13 @@
 import os
 import numpy as np
 from google.cloud import aiplatform
-from google.cloud.aiplatform.vision.models import Image, MultiModalEmbeddingModel
 from dotenv import load_dotenv
+
+try:
+    from google.cloud.aiplatform.vision.models import Image, MultiModalEmbeddingModel
+except (ImportError, ModuleNotFoundError):
+    Image = None
+    MultiModalEmbeddingModel = None
 
 load_dotenv()
 
@@ -28,7 +33,7 @@ def get_image_embedding(image_bytes: bytes) -> list[float] | None:
     """
     Generates a normalized embedding for a given image using Vertex AI.
     """
-    if not embedding_model or not image_bytes:
+    if not embedding_model or not image_bytes or Image is None:
         return None
     try:
         # Load the image from bytes
