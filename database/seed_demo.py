@@ -34,14 +34,14 @@ cur.execute("TRUNCATE TABLE products, stores RESTART IDENTITY")
 print("Existing data cleared.")
 
 stores = [
-("Owino Denim House","owino"),
-("Vintage Kampala Styles","owino"),
-("StreetWear Owino","owino")
+("Owino Denim House","owino", "+256772123456", "Owino Market, Kampala"),
+("Vintage Kampala Styles","owino", "+256752987654", "Owino Market, Kampala"),
+("StreetWear Owino","owino", "+256782555777", "Owino Market, Kampala")
 ]
 
 print("Seeding stores...")
 for s in stores:
-    cur.execute("INSERT INTO stores(name,market) VALUES(%s,%s)",s)
+    cur.execute("INSERT INTO stores(name,market,phone_number,location) VALUES(%s,%s,%s,%s)",s)
 print("Stores seeded successfully.")
 
 # Note: The image_url is now a local file path for seeding

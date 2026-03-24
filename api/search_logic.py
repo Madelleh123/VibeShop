@@ -33,9 +33,10 @@ def search_products(image_bytes: bytes, store_id: int):
 
     # Use cosine distance (<=>) for similarity search on normalized image vectors
     query = """
-    SELECT name, price, image_embedding <=> %s AS distance
-    FROM products
-    WHERE store_id = %s
+    SELECT p.product_id, p.name, p.price, s.name AS store_name, s.location, p.image_embedding <=> %s AS distance
+    FROM products p
+    JOIN stores s ON p.store_id = s.store_id
+    WHERE p.store_id = %s
     ORDER BY distance
     LIMIT 3;
     """
@@ -50,12 +51,16 @@ def search_products(image_bytes: bytes, store_id: int):
         return [], -1
 
     results = []
-    top_distance = rows[0][2]
+    # The distance is now the 6th element (index 5)
+    top_distance = rows[0][5]
 
     for r in rows:
         results.append({
-            "product": r[0],
-            "price": r[1]
+            "product_id": r[0],
+            "product_name": r[1],
+            "price": r[2],
+            "store_name": r[3],
+            "location": r[4]
         })
 
     return results, top_distance
