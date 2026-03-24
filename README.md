@@ -34,7 +34,7 @@ Users upload a clothing photo to `/webhook`, then the server computes an image e
 
 Create `.env` with values:
 
-```
+```bash
 DB_HOST=localhost
 DB_PORT=5432
 DB_NAME=your_db
