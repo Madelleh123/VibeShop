@@ -5,6 +5,7 @@ AI-powered WhatsApp shopping assistant for African markets (Owino Market demo).
 ## Project Description
 
 This repository implements a demo backend for image-based product recommendations using:
+
 - FastAPI for HTTP endpoints
 - PostgreSQL with pgvector for embedding similarity search
 - Google Vertex AI for text and image embeddings (`textembedding-gecko@003`, `multimodalembedding@001`)
