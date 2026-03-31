@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>VibeShop Seller Portal</title>
+    <style>
+        * { box-sizing: border-box; }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            margin: 0;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: #fff;
+            border-radius: 14px;
+            box-shadow: 0 20px 50px rgba(0,0,0,.2);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 30px 24px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            margin: 0;
+            font-size: 28px;
+        }
+        
+        .header p {
+            margin: 8px 0 0 0;
+            opacity: 0.9;
+            font-size: 14px;
+        }
+        
+        .content {
+            padding: 24px;
+        }
+        
+        .section {
+            margin-bottom: 30px;
+        }
+        
+        .section-title {
+            font-weight: 700;
+            font-size: 18px;
+            margin-bottom: 16px;
+            color: #333;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+        
+        .form-group {
+            margin-bottom: 14px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 600;
+            color: #333;
+            font-size: 14px;
+        }
+        
+        input[type=text],
+        input[type=tel],
+        input[type=url],
+        input[type=email],
+        input[type=number],
+        input[type=file],
+        textarea {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #ccc;
+            border-radius: 7px;
+            font-size: 14px;
+            font-family: inherit;
+        }
+        
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+        
+        input:focus,
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102,126,234,.17);
+        }
+        
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+        
+        @media (max-width: 600px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 16px;
+        }
+        
+        button {
+            padding: 12px 16px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 700;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary {
+            flex: 1;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(102,126,234,.4);
+        }
+        
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #333;
+        }
+        
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+        
+        .btn-danger {
+            background: #f44336;
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            background: #d32f2f;
+        }
+        
+        .status {
+            margin-top: 12px;
+            padding: 12px;
+            border-radius: 8px;
+            display: none;
+            font-size: 14px;
+            white-space: pre-wrap;
+            word-break: break-word;
+            line-height: 1.5;
+        }
+        
+        .status.success {
+            display: block;
+            background: #dcf8e9;
+            color: #0e5d2f;
+            border: 1px solid #a8e4b2;
+        }
+        
+        .status.error {
+            display: block;
+            background: #f8d7da;
+            color: #7f1a24;
+            border: 1px solid #f1b0b7;
+        }
+        
+        .status.info {
+            display: block;
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        
+        .upload-source {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+        
+        .upload-source button {
+            flex: 1;
+            background: #f0f0f0;
+            color: #333;
+            padding: 10px;
+        }
+        
+        .upload-source button.active {
+            background: #667eea;
+            color: white;
+        }
+        
+        .preview {
+            margin-top: 12px;
+            text-align: center;
+        }
+        
+        .preview img {
+            max-width: 100%;
+            max-height: 200px;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+        }
+        
+        .store-info {
+            background: #f5f5f5;
+            border-left: 4px solid #667eea;
+            padding: 12px;
+            border-radius: 4px;
+            margin-bottom: 16px;
+        }
+        
+        .store-info strong {
+            color: #333;
+        }
+        
+        .products-list {
+            margin-top: 20px;
+        }
+        
+        .product-card {
+            background: #f9f9f9;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 12px;
+            display: grid;
+            grid-template-columns: 100px 1fr auto;
+            gap: 16px;
+            align-items: start;
+        }
+        
+        @media (max-width: 600px) {
+            .product-card {
+                grid-template-columns: 80px 1fr;
+                gap: 12px;
+            }
+            
+            .product-actions {
+                grid-column: 1 / -1;
+            }
+        }
+        
+        .product-image {
+            width: 100%;
+            aspect-ratio: 1;
+            object-fit: cover;
+            border-radius: 6px;
+            background: #e0e0e0;
+        }
+        
+        .product-info h3 {
+            margin: 0 0 4px 0;
+            font-size: 16px;
+            color: #333;
+        }
+        
+        .product-price {
+            font-size: 18px;
+            font-weight: 700;
+            color: #667eea;
+            margin: 4px 0;
+        }
+        
+        .product-description {
+            font-size: 13px;
+            color: #666;
+            margin: 8px 0 0 0;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        
+        .product-actions {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .product-actions button {
+            padding: 8px 12px;
+            font-size: 12px;
+            flex: 1;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #999;
+        }
+        
+        .empty-state p {
+            font-size: 14px;
+            margin: 0;
+        }
+        
+        .no-products {
+            background: #f5f5f5;
+            border-radius: 8px;
+            padding: 24px;
+            text-align: center;
+            color: #999;
+        }
+        
+        @media (max-width: 600px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+            
+            .header {
+                padding: 20px 16px;
+            }
+            
+            .header h1 {
+                font-size: 22px;
+            }
+            
+            .content {
+                padding: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>🛍️ VibeShop Seller Portal</h1>
+        <p>Manage your store and products easily</p>
+    </div>
+    
+    <div class="content">
+        <!-- STORE SECTION -->
+        <section id="store-section" class="section">
+            <div class="section-title">Step 1: Create Your Store</div>
+            <form id="storeForm">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="shopName">Store Name</label>
+                        <input id="shopName" type="text" required placeholder="My Fashion Store" />
+                    </div>
+                    <div class="form-group">
+                        <label for="phoneNumber">WhatsApp Phone Number</label>
+                        <input id="phoneNumber" type="tel" required placeholder="+256771234567" />
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="location">Location</label>
+                    <input id="location" type="text" required placeholder="Kampala Market, Uganda" />
+                </div>
+                <div class="button-group">
+                    <button type="submit" class="btn-primary">Create Store</button>
+                </div>
+                <div id="storeStatus" class="status"></div>
+            </form>
+        </section>
+        
+        <!-- PRODUCT SECTION -->
+        <section id="upload-section" class="section" style="display:none;">
+            <div class="store-info" id="storeInfo"></div>
+            
+            <!-- Product Upload Form -->
+            <div class="section-title">Step 2: Add Products</div>
+            <form id="uploadForm">
+                <!-- Image Source Toggle -->
+                <div class="upload-source">
+                    <button id="sourceFile" class="active" type="button">Upload from Device</button>
+                    <button id="sourceUrl" type="button">Use Image URL</button>
+                </div>
+                
+                <!-- File/URL Input -->
+                <div id="fileInputGroup" class="form-group">
+                    <label for="productImage">Product Image (local file)</label>
+                    <input id="productImage" type="file" accept="image/*" />
+                </div>
+                <div id="urlInputGroup" class="form-group" style="display:none;">
+                    <label for="productImageUrl">Product Image URL</label>
+                    <input id="productImageUrl" type="url" placeholder="https://example.com/image.jpg" />
+                </div>
+                
+                <!-- Image Preview -->
+                <div id="preview" class="preview"></div>
+                
+                <!-- Product Details -->
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="productName">Product Name</label>
+                        <input id="productName" type="text" required placeholder="Red T-Shirt" />
+                    </div>
+                    <div class="form-group">
+                        <label for="productPrice">Price (UGX)</label>
+                        <input id="productPrice" type="number" required placeholder="25000" min="1" />
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="productDescription">Description (optional)</label>
+                    <textarea id="productDescription" placeholder="Describe your product..."></textarea>
+                </div>
+                
+                <!-- Action Buttons -->
+                <div class="button-group">
+                    <button type="submit" class="btn-primary">Add Product</button>
+                </div>
+                <div id="uploadStatus" class="status"></div>
+            </form>
+            
+            <!-- Products List -->
+            <div class="products-list">
+                <div class="section-title">Your Products</div>
+                <div id="productsList" class="no-products">Loading products...</div>
+            </div>
+            
+            <!-- Change Store Button -->
+            <div class="button-group">
+                <button id="changeStore" type="button" class="btn-secondary">Change Store</button>
+            </div>
+        </section>
+    </div>
+</div>
+
+<script src="/portal/app.js"></script>
+</body>
+</html>
