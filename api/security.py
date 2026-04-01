@@ -1,7 +1,6 @@
 # Basic authentication for the seller portal
 from fastapi import Depends, HTTPException, status
-from fastapi.security import HTTPBearer
-from fastapi.security.http import HTTPAuthCredentials
+from fastapi.security import HTTPBearer, HTTPAuthCredentials
 import hashlib
 import os
 from typing import Optional
