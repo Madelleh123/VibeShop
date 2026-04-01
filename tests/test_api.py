@@ -1,5 +1,5 @@
 # Unit tests for VibeShop API endpoints
-import pytest
+import pytest  # type: ignore
 from fastapi.testclient import TestClient
 from api.main import app
 from api.schemas import StoreCreate, ProductCreate, WebhookMessage
@@ -226,6 +226,7 @@ def test_product_with_very_long_description():
     }
     
     product = ProductCreate(**product_data)
+    assert product.description is not None
     assert len(product.description) == 1000
 
 

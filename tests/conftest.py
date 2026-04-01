@@ -1,5 +1,5 @@
 # pytest configuration and fixtures
-import pytest
+import pytest  # type: ignore
 import os
 from dotenv import load_dotenv
 

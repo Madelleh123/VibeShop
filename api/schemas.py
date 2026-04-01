@@ -82,5 +82,5 @@ class TransactionCreate(BaseModel):
 class PaymentWebhook(BaseModel):
     """Validation schema for payment provider webhooks"""
     reference_code: str = Field(..., min_length=5, description="Transaction reference code")
-    status: str = Field(..., regex="^(pending|completed|failed|cancelled)$", description="Payment status")
+    status: str = Field(..., pattern="^(pending|completed|failed|cancelled)$", description="Payment status")
     amount: Optional[int] = Field(None, gt=0, description="Payment amount")
