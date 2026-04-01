@@ -3,17 +3,47 @@ __pycache__/
 *.pyc
 *.pyo
 *.pyd
+*.egg-info/
+dist/
+build/
 
-# Environments
+# Virtual Environments
+venv/
+ENV/
+env/
+.venv/
+
+# Environment Variables
 .env
+.env.local
+.env.*.local
+
+# IDE
 .vscode/
 .idea/
+*.swp
+*.swo
+*~
+.DS_Store
 
 # Logs
 *.log
+*.log.*
+logs/
 
 # Database
 *.sqlite3
+*.db
 
 # Jupyter
 .ipynb_checkpoints/
+*.ipynb
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# OS
+.DS_Store
+Thumbs.db
