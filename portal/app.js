@@ -10,11 +10,38 @@ const sourceFile = document.getElementById('sourceFile');
 const sourceUrl = document.getElementById('sourceUrl');
 const fileInputGroup = document.getElementById('fileInputGroup');
 const urlInputGroup = document.getElementById('urlInputGroup');
+const welcomePage = document.getElementById('welcome-page');
+const mainContent = document.getElementById('main-content');
+const getStartedBtn = document.getElementById('getStartedBtn');
 
 let selectedSource = 'file';
 let currentStore = null;
 
 const apiBase = '/api/portal';
+
+// --- Welcome Page Handler ---
+function showMainContent() {
+    welcomePage.classList.add('hidden');
+    mainContent.classList.remove('hidden');
+    localStorage.setItem('vibeshop_welcome_seen', 'true');
+}
+
+function showWelcomePage() {
+    welcomePage.classList.remove('hidden');
+    mainContent.classList.add('hidden');
+}
+
+// --- Initialize Page ---
+window.addEventListener('DOMContentLoaded', () => {
+    const welcomeSeen = localStorage.getItem('vibeshop_welcome_seen');
+    if (!welcomeSeen) {
+        showWelcomePage();
+    } else {
+        showMainContent();
+    }
+});
+
+getStartedBtn.addEventListener('click', showMainContent);
 
 // --- Status Message Handler ---
 function setStatus(element, role, msg) {
