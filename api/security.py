@@ -1,6 +1,6 @@
 # Basic authentication for the seller portal
 from fastapi import Depends, HTTPException, status
-from fastapi.security import HTTPBearer, HTTPAuthCredentials
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import hashlib
 import os
 from typing import Optional
@@ -17,7 +17,7 @@ def get_api_key_hash(api_key: str) -> str:
     """Hash an API key for storage"""
     return hashlib.sha256(api_key.encode()).hexdigest()
 
-def verify_portal_auth(credentials: HTTPAuthCredentials = Depends(security)) -> str:
+def verify_portal_auth(credentials: HTTPAuthorizationCredentials = Depends(security)) -> str:
     """
     Verify authentication credentials for portal access.
     In development, uses simple bearer token.
