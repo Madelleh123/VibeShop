@@ -23,7 +23,6 @@ const apiBase = '/api/portal';
 function showMainContent() {
     welcomePage.classList.add('hidden');
     mainContent.classList.remove('hidden');
-    localStorage.setItem('vibeshop_welcome_seen', 'true');
 }
 
 function showWelcomePage() {
@@ -32,16 +31,14 @@ function showWelcomePage() {
 }
 
 // --- Initialize Page ---
-window.addEventListener('DOMContentLoaded', () => {
-    const welcomeSeen = localStorage.getItem('vibeshop_welcome_seen');
-    if (!welcomeSeen) {
-        showWelcomePage();
-    } else {
-        showMainContent();
-    }
-});
+window.addEventListener('DOMContentLoaded', showWelcomePage);
 
 getStartedBtn.addEventListener('click', showMainContent);
+
+const backToWelcomeBtn = document.getElementById('backToWelcomeBtn');
+if (backToWelcomeBtn) {
+    backToWelcomeBtn.addEventListener('click', showWelcomePage);
+}
 
 // --- Status Message Handler ---
 function setStatus(element, role, msg) {
