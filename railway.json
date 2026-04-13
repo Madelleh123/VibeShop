@@ -1,0 +1,6 @@
+{
+  "builder": "dockerfile",
+  "environmentVariables": {
+    "PYTHON_VERSION": "3.11"
+  }
+}
