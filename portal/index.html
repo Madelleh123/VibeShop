@@ -258,6 +258,19 @@
         .welcome-logo {
             font-size: 64px;
             margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+        }
+        
+        .welcome-logo-text {
+            font-size: 48px;
+            font-weight: bold;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
         }
         
         .welcome-hero h2 {
@@ -516,9 +529,12 @@
         <!-- WELCOME PAGE -->
         <div id="welcome-page" class="welcome-page">
             <div class="welcome-hero">
-                <div class="welcome-logo">🛍️</div>
+                <div class="welcome-logo">
+                    <span>🛍️</span>
+                    <span class="welcome-logo-text">VibeShop</span>
+                </div>
                 <h2>Welcome to VibeShop</h2>
-                <p>Sell your products to thousands of customers via WhatsApp</p>
+                <p>AI-Powered Commerce Platform for African Markets</p>
             </div>
             
             <div class="welcome-benefits">
