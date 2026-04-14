@@ -1,0 +1,34 @@
+<svg width="280" height="100" viewBox="0 0 280 100" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#5f2c82" />
+      <stop offset="100%" stop-color="#49a0e2" />
+    </linearGradient>
+    <linearGradient id="accentGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#ffd166" />
+      <stop offset="100%" stop-color="#ef476f" />
+    </linearGradient>
+  </defs>
+
+  <rect x="0" y="0" width="280" height="100" rx="20" fill="url(#bgGrad)" />
+  <g transform="translate(20, 18)">
+    <rect x="0" y="20" width="40" height="35" rx="10" fill="#fff" opacity="0.15" />
+    <path d="M12 20 C12 14 18 10 24 10 C30 10 36 14 36 20" stroke="#fff" stroke-width="4" fill="none" />
+    <path d="M10 30 L38 30 L30 56 L18 56 Z" fill="#fff" opacity="0.2" />
+    <path d="M18 40 C22 34 30 34 34 40" stroke="url(#accentGrad)" stroke-width="4" fill="none" stroke-linecap="round" />
+    <path d="M18 44 L28 44" stroke="#fff" stroke-width="3" stroke-linecap="round" />
+  </g>
+
+  <g transform="translate(70, 28)">
+    <text x="0" y="0" font-family="Segoe UI, Arial, sans-serif" font-size="34" font-weight="700" fill="#fff">Vibe</text>
+    <text x="0" y="36" font-family="Segoe UI, Arial, sans-serif" font-size="34" font-weight="700" fill="#ffd166">Shop</text>
+    <text x="0" y="62" font-family="Segoe UI, Arial, sans-serif" font-size="10" fill="#ffffff" opacity="0.85">AI Commerce for African Markets</text>
+  </g>
+
+  <g transform="translate(205, 24)">
+    <path d="M10 4 L16 4 L18 14 L8 14 Z" fill="#ffd166" />
+    <path d="M6 18 L24 18 L24 26 C24 34 18 40 10 40 C2 40 -4 34 -4 26 L-4 18 Z" fill="#ffffff" opacity="0.2" />
+    <circle cx="10" cy="24" r="4" fill="#ffd166" />
+    <path d="M8 18 L14 18" stroke="#fff" stroke-width="2" stroke-linecap="round" />
+  </g>
+</svg>
