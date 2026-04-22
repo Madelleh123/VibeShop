@@ -16,7 +16,7 @@ CREATE TABLE products (
     price INT,
     image_url TEXT,
     embedding vector(768),
-    image_embedding vector(1408)
+    image_embedding vector(1408) NULL
 );
 
 CREATE TABLE leads (
@@ -68,5 +68,8 @@ CREATE INDEX IF NOT EXISTS idx_transactions_product_id ON transactions(product_i
 CREATE INDEX IF NOT EXISTS idx_transactions_buyer_phone ON transactions(buyer_phone);
 CREATE INDEX IF NOT EXISTS idx_transactions_status ON transactions(status);
 CREATE INDEX IF NOT EXISTS idx_transactions_reference_code ON transactions(reference_code);
+
+-- Allow NULL image embeddings for demo purposes (when Vertex AI not configured)
+ALTER TABLE products ALTER COLUMN image_embedding DROP NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_transactions_created_at ON transactions(created_at);
 CREATE INDEX IF NOT EXISTS idx_transactions_store_status ON transactions(store_id, status);

@@ -1,14 +1,16 @@
 from typing import Any, Dict, Optional
 
-from fastapi import FastAPI, UploadFile, Form, File, Body
+from fastapi import FastAPI, UploadFile, Form, File, Body, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
+from xml.sax.saxutils import escape
 from .search_logic import search_products
 from .lead_logic import log_lead_and_get_details
 from .image_embedding_logic import get_image_embedding
 from .db_utils import get_connection
 from .config import FEATURES, DEFAULT_STORE_ID
 from .payment_logic import create_transaction, update_transaction_status
+from .notification_logic import notify_seller_of_lead
 from ussd.provider import trigger_ussd_payment
 import os
 import requests
@@ -17,6 +19,21 @@ app = FastAPI()
 
 # typed user state to reduce optional-access warnings
 user_states: Dict[str, Dict[str, Any]] = {}
+
+
+def twilio_message_response(message: str):
+    escaped = escape(message)
+    xml = f"<Response><Message>{escaped}</Message></Response>"
+    return Response(content=xml, media_type="application/xml")
+
+
+def whatsapp_help_text():
+    return (
+        "Welcome to VibeShop Assistant! Send an image of a product you want, "
+        "then reply with the result number (1-3) to select it. After selection, "
+        "reply with 'PAY' to proceed with payment."
+    )
+
 
 # --- Structured User State Management ---
 # Key: user_phone_number
@@ -56,11 +73,11 @@ async def whatsapp_webhook(From: str = Form(...), Body: str = Form(...), NumMedi
             response = requests.get(MediaUrl0)
             image_bytes = response.content
 
-            # Search for similar products (multi-tenant: filter by store_id)
-            results, distance = search_products(image_bytes, DEFAULT_STORE_ID)
+            # Search for similar products across all stores
+            results, distance = search_products(image_bytes)
 
             if not results:
-                return {"message": "Sorry, I couldn't find any similar products. Try sending a different image."}
+                return twilio_message_response("Sorry, I couldn't find any similar products. Try sending a different image.")
 
             # Store results in user state
             user_state["last_results"] = results
@@ -78,39 +95,44 @@ async def whatsapp_webhook(From: str = Form(...), Body: str = Form(...), NumMedi
 
             formatted_results = "\n\n".join(result_lines)
             response = f"Here are some matches I found!\n\n{formatted_results}\n\nReply with the number to select a product, or 'PAY' to proceed with payment."
-            return {"message": response}
+            return twilio_message_response(response)
 
         except Exception as e:
             print(f"Error processing image: {e}")
-            return {"message": "Sorry, there was an error processing your image. Please try again."}
+            return twilio_message_response("Sorry, there was an error processing your image. Please try again.")
 
     # --- SCENARIO 2: Handle PAY flow ---
-    body = Body.strip().upper()
+    body = Body.strip()
+    normalized_body = body.upper()
 
-    if body == "PAY":
+    if normalized_body in ["HELP", "START"]:
+        return twilio_message_response(whatsapp_help_text())
+
+    if normalized_body == "PAY":
         selected_product = user_state.get("selected_product")
         if not selected_product or not isinstance(selected_product, dict):
-            return {"message": "Please select a product first by replying with its number (1, 2, or 3)."}
+            return twilio_message_response("Please select a product first by replying with its number (1, 2, or 3).")
 
         user_state["state"] = "WAITING_AMOUNT"
         product = selected_product
         product_name = product.get("name", "selected product")
         product_price = product.get("price", "unknown")
 
-        return {
-            "message": f"Great! You selected: {product_name} for {product_price} UGX.\n\nPlease enter the amount you're willing to pay:"}
+        return twilio_message_response(
+            f"Great! You selected: {product_name} for {product_price} UGX.\n\nPlease enter the amount you're willing to pay."
+        )
 
     # --- SCENARIO 3: User enters payment amount ---
     if user_state.get("state") == "WAITING_AMOUNT":
         try:
             amount = int(body.replace(',', '').replace('UGX', '').strip())
             if amount <= 0:
-                return {"message": "Please enter a valid amount greater than 0."}
+                return twilio_message_response("Please enter a valid amount greater than 0.")
 
             selected_product = user_state.get("selected_product")
             if not selected_product or not isinstance(selected_product, dict):
                 user_state["state"] = "IDLE"
-                return {"message": "No product selected. Please choose a product first."}
+                return twilio_message_response("No product selected. Please choose a product first.")
 
             product = selected_product
             product_id = product.get("product_id")
@@ -119,7 +141,7 @@ async def whatsapp_webhook(From: str = Form(...), Body: str = Form(...), NumMedi
             if product_id is None or store_id is None:
                 user_state["state"] = "IDLE"
                 user_state["selected_product"] = None
-                return {"message": "Selected product is invalid. Please search again and pick a valid option."}
+                return twilio_message_response("Selected product is invalid. Please search again and pick a valid option.")
 
             # Create transaction
             commission, seller_amount, transaction_id = create_transaction(
@@ -131,7 +153,7 @@ async def whatsapp_webhook(From: str = Form(...), Body: str = Form(...), NumMedi
             )
 
             if commission is None:
-                return {"message": "Sorry, there was an error processing your payment. Please try again."}
+                return twilio_message_response("Sorry, there was an error processing your payment. Please try again.")
 
             # Process payment
             if FEATURES["ENABLE_USSD_PAYMENT"]:
@@ -140,7 +162,7 @@ async def whatsapp_webhook(From: str = Form(...), Body: str = Form(...), NumMedi
 
                 if not payment_result or payment_result.get("status") != "success":
                     message = payment_result.get("message", "Unknown error") if isinstance(payment_result, dict) else "Unknown error"
-                    return {"message": f"Payment failed: {message}. Please try again or contact support."}
+                    return twilio_message_response(f"Payment failed: {message}. Please try again or contact support.")
 
                 # Update transaction status
                 from .payment_logic import update_transaction_status
@@ -150,38 +172,51 @@ async def whatsapp_webhook(From: str = Form(...), Body: str = Form(...), NumMedi
                 user_state["state"] = "IDLE"
                 user_state["selected_product"] = None
 
-                return {"message": f"Payment successful! 🎉\n\nAmount paid: {amount} UGX\nCommission: {commission} UGX\nSeller receives: {seller_amount} UGX\n\nYour seller will be notified automatically."}
+                return twilio_message_response(
+                    f"Payment successful! 🎉\n\nAmount paid: {amount} UGX\nCommission: {commission} UGX\nSeller receives: {seller_amount} UGX\n\nYour seller will be notified automatically."
+                )
             else:
                 # Fallback: Just show payment details
                 user_state["state"] = "IDLE"
                 user_state["selected_product"] = None
 
-                return {"message": f"Payment recorded! 📝\n\nAmount: {amount} UGX\nCommission: {commission} UGX\nSeller receives: {seller_amount} UGX\n\nUSSD payment is disabled in this demo. Contact the seller directly."}
+                return twilio_message_response(
+                    f"Payment recorded! 📝\n\nAmount: {amount} UGX\nCommission: {commission} UGX\nSeller receives: {seller_amount} UGX\n\nUSSD payment is disabled in this demo. Contact the seller directly."
+                )
 
         except ValueError:
-            return {"message": "Please enter a valid number for the amount (e.g., 25000)."}
+            return twilio_message_response("Please enter a valid number for the amount (e.g., 25000).")
 
     # --- SCENARIO 4: User selects a product ---
-    if body in ["1", "2", "3"]:
+    if body.isdigit():
         last_results = user_state.get("last_results")
         if not last_results or not isinstance(last_results, list):
-            return {"message": "Sorry, I don't have any previous search results for you. Please send an image of what you're looking for."}
+            return twilio_message_response("Sorry, I don't have any previous search results for you. Please send an image of what you're looking for.")
 
         try:
             selected_index = int(body) - 1
             if selected_index < 0 or selected_index >= len(last_results):
-                return {"message": "Invalid selection. Please choose a number from the list."}
+                return twilio_message_response("Invalid selection. Please choose a number from the list.")
 
             selected_product = last_results[selected_index]
             user_state["selected_product"] = selected_product
 
-            return {"message": f"Selected: {selected_product['name']} for {selected_product['price']} UGX\n\nReply with 'PAY' to proceed with payment, or send another image to search again."}
+            lead_result = log_lead_and_get_details(selected_product["product_id"])
+            if lead_result:
+                lead_id, _, _ = lead_result
+                notify_seller_of_lead(lead_id)
 
+            return twilio_message_response(
+                f"Selected: {selected_product['name']} for {selected_product['price']} UGX\n\nReply with 'PAY' to proceed with payment, or send another image to search again."
+            )
         except (ValueError, IndexError):
-            return {"message": "Invalid selection. Please choose a number from the list."}
+            return twilio_message_response("Invalid selection. Please choose a number from the list.")
 
     # --- Fallback: Unknown command ---
-    return {"message": "I didn't understand that. Send an image to search for products, select a product with its number (1-3), or type 'PAY' to proceed with payment."}
+    return twilio_message_response(
+        "I didn't understand that. Send an image to search for products, select a product with its number (1-3), or type 'PAY' to proceed with payment. "
+        "Type 'HELP' to see the instructions again."
+    )
 
 # --- Portal Routes ---
 
@@ -237,34 +272,19 @@ def upload_product(
     image: UploadFile = File(None),
     image_url: str = Form(None)
 ):
-    """Upload a product with image and generate embeddings"""
+    """Upload a product to store"""
     try:
-        # Get image bytes
-        if image:
-            image_bytes = image.file.read()
-        elif image_url:
-            import requests
-            response = requests.get(image_url)
-            image_bytes = response.content
-        else:
-            return {"status": "error", "message": "No image provided"}
-
-        # Generate image embedding
-        embedding = get_image_embedding(image_bytes)
-        if not embedding:
-            return {"status": "error", "message": "Failed to generate image embedding"}
-
         conn = get_connection()
         cur = conn.cursor()
 
-        # Insert product with embedding
+        # Insert product (image_embedding column will be added in future with pgvector)
         cur.execute(
             """
-            INSERT INTO products (store_id, name, description, price, image_url, image_embedding)
-            VALUES (%s, %s, %s, %s, %s, %s)
+            INSERT INTO products (store_id, name, description, price, image_url)
+            VALUES (%s, %s, %s, %s, %s)
             RETURNING product_id
             """,
-            (store_id, name, description or "", price, image_url or "", embedding)
+            (store_id, name, description or "", price, image_url or "")
         )
         product_id_row = cur.fetchone()
         if not product_id_row:

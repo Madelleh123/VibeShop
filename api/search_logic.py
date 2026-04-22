@@ -1,5 +1,6 @@
 import psycopg2
 import os
+from typing import Optional
 from dotenv import load_dotenv
 from pgvector.psycopg2 import register_vector
 from .embedding_logic import get_embedding
@@ -16,9 +17,10 @@ def get_connection():
         password=os.getenv("DB_PASSWORD")
     )
 
-def search_products(image_bytes: bytes, store_id: int):
+def search_products(image_bytes: bytes, store_id: Optional[int] = None):
     """
     Searches for products using image similarity with cosine distance.
+    If store_id is not provided, search across all stores.
     """
     query_embedding = get_image_embedding(image_bytes)
 
@@ -31,16 +33,25 @@ def search_products(image_bytes: bytes, store_id: int):
     cur = conn.cursor()
 
     # Use cosine distance (<=>) for similarity search on normalized image vectors
-    query = """
-    SELECT p.product_id, p.name, p.price, s.name AS store_name, s.location, p.store_id, p.image_embedding <=> %s AS distance
-    FROM products p
-    JOIN stores s ON p.store_id = s.store_id
-    WHERE p.store_id = %s
-    ORDER BY distance
-    LIMIT 3;
-    """
-
-    cur.execute(query, (query_embedding, store_id))
+    if store_id is None:
+        query = """
+        SELECT p.product_id, p.name, p.price, s.name AS store_name, s.location, p.store_id, p.image_embedding <=> %s AS distance
+        FROM products p
+        JOIN stores s ON p.store_id = s.store_id
+        ORDER BY distance
+        LIMIT 3;
+        """
+        cur.execute(query, (query_embedding,))
+    else:
+        query = """
+        SELECT p.product_id, p.name, p.price, s.name AS store_name, s.location, p.store_id, p.image_embedding <=> %s AS distance
+        FROM products p
+        JOIN stores s ON p.store_id = s.store_id
+        WHERE p.store_id = %s
+        ORDER BY distance
+        LIMIT 3;
+        """
+        cur.execute(query, (query_embedding, store_id))
 
     rows = cur.fetchall()
     cur.close()

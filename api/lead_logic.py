@@ -41,10 +41,12 @@ def log_lead_and_get_details(product_id: int):
     # Generate reference code and log the lead
     ref_code = generate_reference_code()
     cur.execute(
-        "INSERT INTO leads (product_id, store_id, reference_code) VALUES (%s, %s, %s)",
+        "INSERT INTO leads (product_id, store_id, reference_code) VALUES (%s, %s, %s) RETURNING id",
         (product_id, store_id, ref_code)
     )
+    row = cur.fetchone()
     conn.commit()
+    lead_id = row[0] if row else None
     
     cur.close()
     conn.close()
@@ -61,4 +63,4 @@ def log_lead_and_get_details(product_id: int):
     # Generate the final WhatsApp link
     whatsapp_link = f"https://wa.me/{phone_number}?text={encoded_message}"
     
-    return whatsapp_link, store_name
+    return lead_id, whatsapp_link, store_name

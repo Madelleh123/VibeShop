@@ -1,10 +1,15 @@
+import os
+from urllib.parse import quote
+
+import requests
 from .db_utils import get_connection
 from .config import FEATURES
 
 def notify_seller_of_payment(transaction_id: int):
     """
     Notify seller of successful payment.
-    This is prepared but NOT activated in MVP.
+    Sends a WhatsApp notification via Twilio when credentials are configured,
+    otherwise logs the notification message for manual follow-up.
     """
     if not FEATURES.get("ENABLE_SELLER_NOTIFICATIONS", False):
         print(f"Seller notification disabled. Transaction {transaction_id} completed.")
@@ -45,13 +50,40 @@ Reference: {reference}
 
 Please prepare the item for pickup/delivery."""
 
-        # TODO: Send WhatsApp message to seller
-        # This would integrate with WhatsApp Business API
-        print(f"NOTIFICATION TO {seller_phone}: {message}")
+        if not send_whatsapp_message(seller_phone, message):
+            print(f"NOTIFICATION TO {seller_phone}: {message}")
 
     except Exception as e:
         print(f"Error sending seller notification: {e}")
 
+def send_whatsapp_message(phone_number: str, message: str) -> bool:
+    """Try to send a WhatsApp message using Twilio if environment variables are provided."""
+    twilio_sid = os.getenv("TWILIO_ACCOUNT_SID")
+    twilio_token = os.getenv("TWILIO_AUTH_TOKEN")
+    twilio_from = os.getenv("TWILIO_WHATSAPP_FROM")
+
+    if not twilio_sid or not twilio_token or not twilio_from:
+        return False
+
+    whatsapp_to = phone_number if phone_number.startswith("whatsapp:") else f"whatsapp:{phone_number}"
+    whatsapp_from = twilio_from if twilio_from.startswith("whatsapp:") else f"whatsapp:{twilio_from}"
+    url = f"https://api.twilio.com/2010-04-01/Accounts/{twilio_sid}/Messages.json"
+
+    payload = {
+        "From": whatsapp_from,
+        "To": whatsapp_to,
+        "Body": message
+    }
+
+    try:
+        response = requests.post(url, data=payload, auth=(twilio_sid, twilio_token), timeout=15)
+        if response.status_code >= 400:
+            print(f"Twilio WhatsApp send failed ({response.status_code}): {response.text}")
+            return False
+        return True
+    except Exception as e:
+        print(f"Error sending WhatsApp message via Twilio: {e}")
+        return False
 def notify_seller_of_lead(lead_id: int):
     """
     Notify seller of new lead (when user selects product but hasn't paid yet).
@@ -87,8 +119,8 @@ Reference: {reference}
 
 A customer is interested in this product. They may contact you soon."""
 
-        # TODO: Send WhatsApp message to seller
-        print(f"LEAD NOTIFICATION TO {seller_phone}: {message}")
+        if not send_whatsapp_message(seller_phone, message):
+            print(f"LEAD NOTIFICATION TO {seller_phone}: {message}")
 
     except Exception as e:
         print(f"Error sending lead notification: {e}")

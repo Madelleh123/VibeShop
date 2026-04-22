@@ -83,14 +83,14 @@ for p in products:
         print(f"  ERROR: Image file not found at {image_path}")
 
     # 3. Insert into database
-    if text_embedding and image_embedding:
+    if text_embedding:
         cur.execute(
-            "INSERT INTO products(store_id,name,description,price,image_url,embedding,image_embedding) VALUES(%s,%s,%s,%s,%s,%s,%s)",
-            (p[0], p[1], p[2], p[3], image_filename, text_embedding, image_embedding)
+            "INSERT INTO products(store_id,name,description,price,image_url,embedding) VALUES(%s,%s,%s,%s,%s,%s)",
+            (p[0], p[1], p[2], p[3], image_filename, text_embedding)
         )
-        print(f"  Successfully inserted '{name}' with both embeddings.")
+        print(f"  Successfully inserted '{name}' with text embedding.")
     else:
-        print(f"  Skipping '{name}' due to missing embedding.")
+        print(f"  Skipping '{name}' due to missing text embedding.")
 
 conn.commit()
 print("All products seeded and embeddings generated.")
