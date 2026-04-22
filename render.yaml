@@ -1,0 +1,45 @@
+services:
+  - type: web
+    name: vibeshop-portal
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn api.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: "false"
+      - key: DB_HOST
+        fromDatabase:
+          name: vibeshop-db
+          property: host
+      - key: DB_PORT
+        fromDatabase:
+          name: vibeshop-db
+          property: port
+      - key: DB_NAME
+        fromDatabase:
+          name: vibeshop-db
+          property: database
+      - key: DB_USER
+        fromDatabase:
+          name: vibeshop-db
+          property: username
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: vibeshop-db
+          property: password
+      - key: GOOGLE_PROJECT_ID
+        value: ""
+      - key: GOOGLE_REGION
+        value: us-central1
+
+databases:
+  - name: vibeshop-db
+    engine: postgres
+    version: "15"
+    plan: free
+    initialDatabase: vibeshop_db
