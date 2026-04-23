@@ -3,19 +3,8 @@ import os
 from typing import Optional
 from dotenv import load_dotenv
 from pgvector.psycopg2 import register_vector
-from .embedding_logic import get_embedding
+from .db_utils import get_connection
 from .image_embedding_logic import get_image_embedding
-
-load_dotenv()
-
-def get_connection():
-    return psycopg2.connect(
-        host=os.getenv("DB_HOST"),
-        port=os.getenv("DB_PORT"),
-        dbname=os.getenv("DB_NAME"),
-        user=os.getenv("DB_USER"),
-        password=os.getenv("DB_PASSWORD")
-    )
 
 def search_products(image_bytes: bytes, store_id: Optional[int] = None):
     """

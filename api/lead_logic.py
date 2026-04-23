@@ -34,7 +34,7 @@ def log_lead_and_get_details(product_id: int):
     if not details:
         cur.close()
         conn.close()
-        return None, None
+        return None
 
     product_name, price, store_name, phone_number, store_id = details
     

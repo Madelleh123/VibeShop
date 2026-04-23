@@ -7,19 +7,14 @@ from pgvector.psycopg2 import register_vector
 
 # Add project root to path to allow importing from `api`
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from api.db_utils import get_connection
 from api.embedding_logic import get_embedding
 from api.image_embedding_logic import get_image_embedding
 
 load_dotenv()
 
 print("Connecting to the database...")
-conn = psycopg2.connect(
-    dbname=os.getenv("DB_NAME"),
-    user=os.getenv("DB_USER"),
-    password=os.getenv("DB_PASSWORD"),
-    host=os.getenv("DB_HOST"),
-    port=os.getenv("DB_PORT")
-)
+conn = get_connection()
 print("Database connection successful.")
 
 # Register the vector type adapter

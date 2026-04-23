@@ -12,26 +12,10 @@ services:
         value: production
       - key: APP_DEBUG
         value: "false"
-      - key: DB_HOST
+      - key: DATABASE_URL
         fromDatabase:
           name: vibeshop-db
-          property: host
-      - key: DB_PORT
-        fromDatabase:
-          name: vibeshop-db
-          property: port
-      - key: DB_NAME
-        fromDatabase:
-          name: vibeshop-db
-          property: database
-      - key: DB_USER
-        fromDatabase:
-          name: vibeshop-db
-          property: username
-      - key: DB_PASSWORD
-        fromDatabase:
-          name: vibeshop-db
-          property: password
+          property: connectionString
       - key: GOOGLE_PROJECT_ID
         value: ""
       - key: GOOGLE_REGION

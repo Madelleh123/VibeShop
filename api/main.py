@@ -2,7 +2,7 @@ from typing import Any, Dict, Optional
 
 from fastapi import FastAPI, UploadFile, Form, File, Body, Response
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, PlainTextResponse
 from xml.sax.saxutils import escape
 from .search_logic import search_products
 from .lead_logic import log_lead_and_get_details
@@ -43,9 +43,15 @@ def whatsapp_help_text():
 #     "state": "IDLE" | "WAITING_AMOUNT"  # User state in payment flow
 # }
 
-@app.get("/")
+@app.get("/", response_class=PlainTextResponse)
 def root():
-    return {"message": "VibeShop Assistant Running"}
+    return "VibeShop is running 🚀 Go to /portal"
+
+@app.get("/portal", response_class=HTMLResponse)
+def portal_root():
+    portal_path = os.path.join(os.path.dirname(__file__), "..", "portal", "index.html")
+    with open(portal_path, "r", encoding="utf-8") as f:
+        return f.read()
 
 @app.post("/webhook")
 async def whatsapp_webhook(From: str = Form(...), Body: str = Form(...), NumMedia: int = Form(0), MediaUrl0: str = Form(None)):
@@ -204,7 +210,8 @@ async def whatsapp_webhook(From: str = Form(...), Body: str = Form(...), NumMedi
             lead_result = log_lead_and_get_details(selected_product["product_id"])
             if lead_result:
                 lead_id, _, _ = lead_result
-                notify_seller_of_lead(lead_id)
+                if lead_id is not None:
+                    notify_seller_of_lead(lead_id)
 
             return twilio_message_response(
                 f"Selected: {selected_product['name']} for {selected_product['price']} UGX\n\nReply with 'PAY' to proceed with payment, or send another image to search again."
