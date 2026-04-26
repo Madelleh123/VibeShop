@@ -20,8 +20,15 @@ def init_db(conn):
                 name TEXT,
                 market TEXT,
                 phone_number TEXT,
-                location TEXT
+                location TEXT,
+                store_code TEXT UNIQUE
             );
+        """)
+        
+        # Add store_code column to existing stores table if it doesn't exist
+        cur.execute("""
+            ALTER TABLE stores 
+            ADD COLUMN IF NOT EXISTS store_code TEXT UNIQUE;
         """)
         
         # Create products table

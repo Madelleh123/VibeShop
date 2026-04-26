@@ -52,12 +52,13 @@ function hideStatus(element) {
     element.style.display = 'none';
 }
 
-function showUploadSection(storeId, storeName) {
-    currentStore = { id: storeId, name: storeName };
+function showUploadSection(storeId, storeName, storeCode = null) {
+    currentStore = { id: storeId, name: storeName, code: storeCode };
     uploadSection.style.display = 'block';
     document.getElementById('store-section').style.display = 'none';
     if (storeInfo) {
-        storeInfo.textContent = `Managing store: ${storeName}`;
+        const codeDisplay = storeCode ? ` (Code: ${storeCode})` : '';
+        storeInfo.textContent = `Managing store: ${storeName}${codeDisplay}`;
     }
     hideStatus(storeStatus);
     hideStatus(uploadStatus);
@@ -80,6 +81,7 @@ function resetToStore() {
     if (productSuccessActions) productSuccessActions.style.display = 'none';
     localStorage.removeItem('vibeshop_store_id');
     localStorage.removeItem('vibeshop_store_name');
+    localStorage.removeItem('vibeshop_store_code');
 }
 
 async function loadProducts() {
@@ -174,9 +176,10 @@ window.addEventListener('DOMContentLoaded', () => {
     if (localStorage.getItem('vibeshop_store_id')) {
         const storeId = parseInt(localStorage.getItem('vibeshop_store_id'));
         const storeName = localStorage.getItem('vibeshop_store_name');
+        const storeCode = localStorage.getItem('vibeshop_store_code');
         if (storeId && storeName) {
             showPortalScreen();
-            showUploadSection(storeId, storeName);
+            showUploadSection(storeId, storeName, storeCode);
         }
     }
 });
@@ -209,12 +212,13 @@ if (storeForm) {
                 }
                 return;
             }
-            setStatus(storeStatus, 'success', '🎉 Store created successfully!');
+            setStatus(storeStatus, 'success', `🎉 Store created successfully!\n\nYour Store Code: ${data.store_code}\n\nKeep this code safe - you'll need it for customer support.`);
             localStorage.setItem('vibeshop_store_id', data.store_id);
             localStorage.setItem('vibeshop_store_name', name);
+            localStorage.setItem('vibeshop_store_code', data.store_code);
             if (storeSuccessActions) storeSuccessActions.style.display = 'flex';
             if (addProductBtn) {
-                addProductBtn.onclick = () => showUploadSection(data.store_id, name);
+                addProductBtn.onclick = () => showUploadSection(data.store_id, name, data.store_code);
             }
         } catch (err) {
             setStatus(storeStatus, 'error', `❌ Error: ${err.message}`);

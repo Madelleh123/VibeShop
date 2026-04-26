@@ -5,7 +5,8 @@ CREATE TABLE stores (
     name TEXT,
     market TEXT,
     phone_number TEXT,
-    location TEXT
+    location TEXT,
+    store_code TEXT UNIQUE
 );
 
 CREATE TABLE products (

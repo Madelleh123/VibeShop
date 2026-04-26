@@ -14,8 +14,35 @@ from .notification_logic import notify_seller_of_lead
 from ussd.provider import trigger_ussd_payment
 import os
 import requests
+import random
 
 app = FastAPI()
+
+def generate_store_code():
+    """Generate a unique store code in format VIBE-XXXX"""
+    while True:
+        # Generate 4 random digits
+        digits = ''.join(random.choices('0123456789', k=4))
+        store_code = f"VIBE-{digits}"
+        
+        # Check if this code already exists
+        conn = get_connection()
+        cur = conn.cursor()
+        try:
+            cur.execute("SELECT store_id FROM stores WHERE store_code = %s", (store_code,))
+            existing = cur.fetchone()
+            if not existing:
+                cur.close()
+                conn.close()
+                return store_code
+        except Exception:
+            # If table doesn't exist yet or other error, just return the code
+            cur.close()
+            conn.close()
+            return store_code
+        finally:
+            cur.close()
+            conn.close()
 
 # typed user state to reduce optional-access warnings
 user_states: Dict[str, Dict[str, Any]] = {}
@@ -240,12 +267,15 @@ app.mount("/portal", StaticFiles(directory=os.path.join(os.path.dirname(__file__
 def create_store(name: str = Form(...), phone_number: str = Form(...), location: str = Form(...)):
     """Create a new store"""
     try:
+        # Generate unique store code
+        store_code = generate_store_code()
+        
         conn = get_connection()
         cur = conn.cursor()
 
         cur.execute(
-            "INSERT INTO stores (name, phone_number, location) VALUES (%s, %s, %s) RETURNING store_id",
-            (name, phone_number, location)
+            "INSERT INTO stores (name, phone_number, location, store_code) VALUES (%s, %s, %s, %s) RETURNING store_id",
+            (name, phone_number, location, store_code)
         )
         store_id_row = cur.fetchone()
         if not store_id_row:
@@ -256,7 +286,7 @@ def create_store(name: str = Form(...), phone_number: str = Form(...), location:
         cur.close()
         conn.close()
 
-        return {"status": "success", "store_id": store_id, "message": f"Store '{name}' created successfully"}
+        return {"status": "success", "store_id": store_id, "store_code": store_code, "message": f"Store '{name}' created successfully"}
     except Exception as e:
         error_msg = str(e)
         
