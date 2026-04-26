@@ -16,6 +16,11 @@ const mainContent = document.getElementById('main-content');
 const getStartedBtn = document.getElementById('getStartedBtn');
 const backToWelcomeBtn = document.getElementById('backToWelcomeBtn');
 const homeBtn = document.getElementById('homeBtn');
+const storeSuccessActions = document.getElementById('storeSuccessActions');
+const addProductBtn = document.getElementById('addProductBtn');
+const productSuccessActions = document.getElementById('productSuccessActions');
+const addAnotherProductBtn = document.getElementById('addAnotherProductBtn');
+const viewProductsBtn = document.getElementById('viewProductsBtn');
 
 let selectedSource = 'file';
 let currentStore = null;
@@ -56,6 +61,8 @@ function showUploadSection(storeId, storeName) {
     }
     hideStatus(storeStatus);
     hideStatus(uploadStatus);
+    if (storeSuccessActions) storeSuccessActions.style.display = 'none';
+    if (productSuccessActions) productSuccessActions.style.display = 'none';
     loadProducts();
 }
 
@@ -69,6 +76,8 @@ function resetToStore() {
     productsList.innerHTML = '';
     if (storeInfo) storeInfo.textContent = '';
     hideStatus(uploadStatus);
+    if (storeSuccessActions) storeSuccessActions.style.display = 'none';
+    if (productSuccessActions) productSuccessActions.style.display = 'none';
     localStorage.removeItem('vibeshop_store_id');
     localStorage.removeItem('vibeshop_store_name');
 }
@@ -81,13 +90,20 @@ async function loadProducts() {
         const data = await resp.json();
         const products = data.products || [];
         if (products.length === 0) {
-            productsList.innerHTML = '<div class="no-products">📦 No products yet. Add one to get started.</div>';
+            productsList.innerHTML = `
+                <div class="no-products">
+                    <div class="empty-icon">📦</div>
+                    <h3>You don't have any products yet</h3>
+                    <p>Add your first product to start selling on VibeShop!</p>
+                    <button class="btn-primary" onclick="document.getElementById('productName').focus(); document.getElementById('productName').scrollIntoView({behavior: 'smooth'});">Add Your First Product</button>
+                </div>`;
             return;
         }
         let html = '';
         products.forEach(p => {
             const img = p.image_url || '/portal/no-image.png';
             const desc = p.description || 'No description';
+            const storeId = p.store_id || currentStore?.id || 'N/A';
             html += `
                 <div class="product-card">
                     <img src="${img}" alt="${p.name}" class="product-image" onerror="this.src='/portal/no-image.png'">
@@ -95,6 +111,7 @@ async function loadProducts() {
                         <h3>${p.name}</h3>
                         <div class="product-price">${p.price} UGX</div>
                         <div class="product-description">${desc}</div>
+                        <small style="color: #666; font-size: 12px;">Store ID: ${storeId}</small>
                     </div>
                     <div class="product-actions">
                         <button class="btn-danger" onclick="deleteProduct(${p.product_id})">Delete</button>
@@ -172,7 +189,7 @@ if (storeForm) {
         const phone = document.getElementById('phoneNumber').value.trim();
         const location = document.getElementById('location').value.trim();
         if (!name || !phone || !location) {
-            setStatus(storeStatus, 'error', '⚠️ Fill in all fields');
+            setStatus(storeStatus, 'error', '⚠️ Please fill in all required fields (Store Name, Phone Number, and Location)');
             return;
         }
         setStatus(storeStatus, 'info', '⏳ Creating store...');
@@ -192,10 +209,13 @@ if (storeForm) {
                 }
                 return;
             }
-            setStatus(storeStatus, 'success', '✅ Store created! Now add your first product.');
+            setStatus(storeStatus, 'success', '🎉 Store created successfully!');
             localStorage.setItem('vibeshop_store_id', data.store_id);
             localStorage.setItem('vibeshop_store_name', name);
-            setTimeout(() => showUploadSection(data.store_id, name), 600);
+            if (storeSuccessActions) storeSuccessActions.style.display = 'flex';
+            if (addProductBtn) {
+                addProductBtn.onclick = () => showUploadSection(data.store_id, name);
+            }
         } catch (err) {
             setStatus(storeStatus, 'error', `❌ Error: ${err.message}`);
         }
@@ -214,7 +234,7 @@ if (uploadForm) {
         const productPrice = document.getElementById('productPrice').value.trim();
         const productDesc = document.getElementById('productDescription').value.trim();
         if (!productName || !productPrice) {
-            setStatus(uploadStatus, 'error', '⚠️ Enter product name and price');
+            setStatus(uploadStatus, 'error', '⚠️ Please enter both product name and price');
             return;
         }
         const formData = new FormData();
@@ -225,7 +245,7 @@ if (uploadForm) {
         if (selectedSource === 'file') {
             const imageFile = document.getElementById('productImage').files[0];
             if (!imageFile) {
-                setStatus(uploadStatus, 'error', '⚠️ Select an image file');
+                setStatus(uploadStatus, 'error', '⚠️ Please select an image file from your device');
                 return;
             }
             formData.append('image', imageFile);
@@ -234,7 +254,7 @@ if (uploadForm) {
         } else {
             const imageUrl = document.getElementById('productImageUrl').value.trim();
             if (!imageUrl) {
-                setStatus(uploadStatus, 'error', '⚠️ Enter image URL');
+                setStatus(uploadStatus, 'error', '⚠️ Please enter a valid image URL (e.g., https://example.com/image.jpg)');
                 return;
             }
             formData.append('image_url', imageUrl);
@@ -247,10 +267,26 @@ if (uploadForm) {
                 setStatus(uploadStatus, 'error', `❌ ${data.message || 'Upload failed'}`);
                 return;
             }
-            setStatus(uploadStatus, 'success', '✅ Product added successfully');
+            setStatus(uploadStatus, 'success', '🎉 Product added successfully!');
             uploadForm.reset();
             preview.innerHTML = '';
-            loadProducts();
+            if (productSuccessActions) productSuccessActions.style.display = 'flex';
+            if (addAnotherProductBtn) {
+                addAnotherProductBtn.onclick = () => {
+                    productSuccessActions.style.display = 'none';
+                    hideStatus(uploadStatus);
+                    document.getElementById('productName').focus();
+                };
+            }
+            if (viewProductsBtn) {
+                viewProductsBtn.onclick = () => {
+                    productSuccessActions.style.display = 'none';
+                    hideStatus(uploadStatus);
+                    loadProducts();
+                    // Scroll to products section
+                    document.getElementById('productsList').scrollIntoView({behavior: 'smooth'});
+                };
+            }
         } catch (err) {
             setStatus(uploadStatus, 'error', `❌ Error: ${err.message}`);
         }

@@ -493,11 +493,46 @@
         }
         
         .no-products {
-            background: #f5f5f5;
-            border-radius: 8px;
-            padding: 24px;
+            background: #f8f9fa;
+            border: 2px dashed #dee2e6;
+            border-radius: 12px;
+            padding: 40px 24px;
             text-align: center;
-            color: #999;
+            color: #6c757d;
+            margin: 20px 0;
+        }
+        
+        .no-products .empty-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+        
+        .no-products h3 {
+            margin: 0 0 8px 0;
+            color: #495057;
+            font-size: 18px;
+        }
+        
+        .no-products p {
+            margin: 0 0 20px 0;
+            font-size: 14px;
+        }
+        
+        .no-products .btn-primary {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .no-products .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102,126,234,.3);
         }
         
         @media (max-width: 600px) {
@@ -632,6 +667,9 @@
                         <button type="submit" class="btn-primary">Create Store</button>
                     </div>
                     <div id="storeStatus" class="status"></div>
+                    <div id="storeSuccessActions" class="button-group" style="display:none;">
+                        <button id="addProductBtn" type="button" class="btn-primary">Add Product</button>
+                    </div>
                 </form>
             </section>
             
@@ -682,6 +720,10 @@
                         <button type="submit" class="btn-primary">Add Product</button>
                     </div>
                     <div id="uploadStatus" class="status"></div>
+                    <div id="productSuccessActions" class="button-group" style="display:none;">
+                        <button id="addAnotherProductBtn" type="button" class="btn-primary">Add Another Product</button>
+                        <button id="viewProductsBtn" type="button" class="btn-secondary">View Products</button>
+                    </div>
                 </form>
                 
                 <!-- Products List -->
