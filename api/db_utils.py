@@ -28,8 +28,9 @@ def init_db(conn):
         # Add store_code column to existing stores table if it doesn't exist
         cur.execute("""
             ALTER TABLE stores 
-            ADD COLUMN IF NOT EXISTS store_code TEXT UNIQUE;
+            ADD COLUMN IF NOT EXISTS store_code TEXT;
         """)
+        cur.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_stores_store_code ON stores(store_code);")
         
         # Create products table
         cur.execute("""
@@ -71,12 +72,24 @@ def init_db(conn):
                 created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
             );
         """)
-        
+
+        # Create activity tracking table
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS activity (
+                id SERIAL PRIMARY KEY,
+                store_code TEXT,
+                action TEXT,
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+            );
+        """)
+
         # Create indexes for performance
         cur.execute("CREATE INDEX IF NOT EXISTS idx_stores_phone ON stores(phone_number);")
         cur.execute("CREATE INDEX IF NOT EXISTS idx_stores_name ON stores(name);")
         cur.execute("CREATE INDEX IF NOT EXISTS idx_products_store_id ON products(store_id);")
         cur.execute("CREATE INDEX IF NOT EXISTS idx_products_name ON products(name);")
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_activity_store_code ON activity(store_code);")
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_activity_action ON activity(action);")
         
         conn.commit()
         cur.close()

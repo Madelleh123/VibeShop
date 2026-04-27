@@ -15,30 +15,24 @@ from ussd.provider import trigger_ussd_payment
 import os
 import requests
 import random
+import string
 
 app = FastAPI()
 
 def generate_store_code():
-    """Generate a unique store code in format VIBE-XXXX"""
+    """Generate a unique store code in format VIBE-XXXXX."""
+    charset = string.ascii_uppercase + string.digits
     while True:
-        # Generate 4 random digits
-        digits = ''.join(random.choices('0123456789', k=4))
-        store_code = f"VIBE-{digits}"
-        
-        # Check if this code already exists
+        code = ''.join(random.choices(charset, k=5))
+        store_code = f"VIBE-{code}"
+
         conn = get_connection()
         cur = conn.cursor()
         try:
             cur.execute("SELECT store_id FROM stores WHERE store_code = %s", (store_code,))
-            existing = cur.fetchone()
-            if not existing:
-                cur.close()
-                conn.close()
+            if not cur.fetchone():
                 return store_code
         except Exception:
-            # If table doesn't exist yet or other error, just return the code
-            cur.close()
-            conn.close()
             return store_code
         finally:
             cur.close()
@@ -267,9 +261,7 @@ app.mount("/portal", StaticFiles(directory=os.path.join(os.path.dirname(__file__
 def create_store(name: str = Form(...), phone_number: str = Form(...), location: str = Form(...)):
     """Create a new store"""
     try:
-        # Generate unique store code
         store_code = generate_store_code()
-        
         conn = get_connection()
         cur = conn.cursor()
 
@@ -281,6 +273,11 @@ def create_store(name: str = Form(...), phone_number: str = Form(...), location:
         if not store_id_row:
             raise ValueError("Failed to create store, no store_id returned from database")
         store_id = store_id_row[0]
+
+        cur.execute(
+            "INSERT INTO activity (store_code, action) VALUES (%s, %s)",
+            (store_code, "create_store")
+        )
         conn.commit()
 
         cur.close()
@@ -290,7 +287,6 @@ def create_store(name: str = Form(...), phone_number: str = Form(...), location:
     except Exception as e:
         error_msg = str(e)
         
-        # Check if it's a database connection error
         if "connection" in error_msg.lower() or "refused" in error_msg.lower():
             return {
                 "status": "error", 
@@ -302,19 +298,28 @@ def create_store(name: str = Form(...), phone_number: str = Form(...), location:
 
 @app.post("/api/portal/upload-product")
 def upload_product(
-    store_id: int = Form(...),
+    store_id: Optional[int] = Form(None),
+    store_code: Optional[str] = Form(None),
     name: str = Form(...),
     price: int = Form(...),
-    description: str = Form(None),
+    description: Optional[str] = Form(None),
     image: UploadFile = File(None),
-    image_url: str = Form(None)
+    image_url: Optional[str] = Form(None)
 ):
     """Upload a product to store"""
     try:
         conn = get_connection()
         cur = conn.cursor()
 
-        # Insert product (image_embedding column will be added in future with pgvector)
+        if store_id is None:
+            if not store_code:
+                raise ValueError("Missing store_id or store_code")
+            cur.execute("SELECT store_id FROM stores WHERE store_code = %s", (store_code,))
+            row = cur.fetchone()
+            if not row:
+                raise ValueError("Store code not found")
+            store_id = row[0]
+
         cur.execute(
             """
             INSERT INTO products (store_id, name, description, price, image_url)
@@ -327,6 +332,16 @@ def upload_product(
         if not product_id_row:
             raise ValueError("Failed to upload product, no product_id returned from database")
         product_id = product_id_row[0]
+
+        if not store_code:
+            cur.execute("SELECT store_code FROM stores WHERE store_id = %s", (store_id,))
+            row = cur.fetchone()
+            store_code = row[0] if row else None
+
+        cur.execute(
+            "INSERT INTO activity (store_code, action) VALUES (%s, %s)",
+            (store_code or "UNKNOWN", "add_product")
+        )
         conn.commit()
 
         cur.close()
@@ -337,11 +352,20 @@ def upload_product(
         return {"status": "error", "message": str(e)}
 
 @app.get("/api/portal/products")
-def get_store_products(store_id: int):
+def get_store_products(store_id: Optional[int] = None, store_code: Optional[str] = None):
     """Get all products for a store"""
     try:
         conn = get_connection()
         cur = conn.cursor()
+
+        if store_id is None:
+            if not store_code:
+                raise ValueError("Missing store_id or store_code")
+            cur.execute("SELECT store_id FROM stores WHERE store_code = %s", (store_code,))
+            row = cur.fetchone()
+            if not row:
+                raise ValueError("Store code not found")
+            store_id = row[0]
 
         cur.execute(
             """
@@ -368,6 +392,59 @@ def get_store_products(store_id: int):
             })
 
         return {"status": "success", "products": products}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.get("/store/{store_code}")
+def get_store_by_code(store_code: str):
+    """Get store details by store_code."""
+    try:
+        conn = get_connection()
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT store_id, name, market, phone_number, location, store_code FROM stores WHERE store_code = %s",
+            (store_code,)
+        )
+        row = cur.fetchone()
+        cur.close()
+        conn.close()
+
+        if not row:
+            return {"status": "error", "message": "Store not found"}
+
+        return {
+            "status": "success",
+            "store": {
+                "store_id": row[0],
+                "name": row[1],
+                "market": row[2],
+                "phone_number": row[3],
+                "location": row[4],
+                "store_code": row[5]
+            }
+        }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.get("/admin/activity")
+def get_admin_activity():
+    """Return activity tracking for stores."""
+    try:
+        conn = get_connection()
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT store_code, action, created_at FROM activity ORDER BY created_at DESC"
+        )
+        rows = cur.fetchall()
+        cur.close()
+        conn.close()
+
+        activity = [
+            {"store_code": r[0], "action": r[1], "timestamp": r[2].isoformat() if r[2] else None}
+            for r in rows
+        ]
+
+        return {"status": "success", "activity": activity}
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
