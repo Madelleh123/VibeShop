@@ -67,11 +67,31 @@ function showUploadSection(storeId, storeName, storeCode = null) {
     loadProducts();
 }
 
+function showStoreForm() {
+    currentStore = null;
+    uploadSection.style.display = 'none';
+    document.getElementById('store-section').style.display = 'block';
+    if (localStorage.getItem('vibeshop_store_id')) {
+        const storedName = localStorage.getItem('vibeshop_store_name') || '';
+        const storedPhone = localStorage.getItem('vibeshop_store_phone') || '';
+        const storedLocation = localStorage.getItem('vibeshop_store_location') || '';
+        document.getElementById('shopName').value = storedName;
+        document.getElementById('phoneNumber').value = storedPhone;
+        document.getElementById('location').value = storedLocation;
+        if (storeInfo) {
+            const codeDisplay = localStorage.getItem('vibeshop_store_code') ? ` (Code: ${localStorage.getItem('vibeshop_store_code')})` : '';
+            storeInfo.textContent = `Current store saved: ${storedName}${codeDisplay}`;
+        }
+    }
+    hideStatus(storeStatus);
+    if (storeSuccessActions) storeSuccessActions.style.display = 'none';
+    if (productSuccessActions) productSuccessActions.style.display = 'none';
+}
+
 function resetToStore() {
     currentStore = null;
     uploadSection.style.display = 'none';
     document.getElementById('store-section').style.display = 'block';
-    storeForm.reset();
     uploadForm.reset();
     preview.innerHTML = '';
     productsList.innerHTML = '';
@@ -79,9 +99,12 @@ function resetToStore() {
     hideStatus(uploadStatus);
     if (storeSuccessActions) storeSuccessActions.style.display = 'none';
     if (productSuccessActions) productSuccessActions.style.display = 'none';
-    localStorage.removeItem('vibeshop_store_id');
-    localStorage.removeItem('vibeshop_store_name');
-    localStorage.removeItem('vibeshop_store_code');
+}
+
+function validatePhoneNumber(value) {
+    if (!value.startsWith('+')) return false;
+    const digits = value.slice(1);
+    return /^\d{9,}$/.test(digits);
 }
 
 async function loadProducts() {
@@ -172,7 +195,7 @@ window.addEventListener('DOMContentLoaded', () => {
     if (getStartedBtn) getStartedBtn.addEventListener('click', showPortalScreen);
     if (backToWelcomeBtn) backToWelcomeBtn.addEventListener('click', showWelcomeScreen);
     if (homeBtn) homeBtn.addEventListener('click', showWelcomeScreen);
-    if (changeStoreBtn) changeStoreBtn.addEventListener('click', resetToStore);
+    if (changeStoreBtn) changeStoreBtn.addEventListener('click', showStoreForm);
     if (localStorage.getItem('vibeshop_store_id')) {
         const storeId = parseInt(localStorage.getItem('vibeshop_store_id'));
         const storeName = localStorage.getItem('vibeshop_store_name');
@@ -195,6 +218,15 @@ if (storeForm) {
             setStatus(storeStatus, 'error', '⚠️ Please fill in all required fields (Store Name, Phone Number, and Location)');
             return;
         }
+        if (!validatePhoneNumber(phone)) {
+            setStatus(storeStatus, 'error', '⚠️ Please enter a valid international phone number: + followed by at least 9 digits');
+            return;
+        }
+        const savedPhone = localStorage.getItem('vibeshop_store_phone');
+        if (savedPhone && savedPhone === phone) {
+            setStatus(storeStatus, 'error', '⚠️ You already have a store saved for this WhatsApp number. Use the existing store or change the number to create a new one.');
+            return;
+        }
         setStatus(storeStatus, 'info', '⏳ Creating store...');
         try {
             const fd = new FormData();
@@ -212,14 +244,17 @@ if (storeForm) {
                 }
                 return;
             }
-            setStatus(storeStatus, 'success', `🎉 Store created successfully!\n\nYour Store Code: ${data.store_code}\n\nKeep this code safe - you'll need it for customer support.`);
+            setStatus(storeStatus, 'success', `🎉 Store created successfully!\n\nYour Store Code: ${data.store_code}`);
             localStorage.setItem('vibeshop_store_id', data.store_id);
             localStorage.setItem('vibeshop_store_name', name);
             localStorage.setItem('vibeshop_store_code', data.store_code);
+            localStorage.setItem('vibeshop_store_phone', phone);
+            localStorage.setItem('vibeshop_store_location', location);
             if (storeSuccessActions) storeSuccessActions.style.display = 'flex';
             if (addProductBtn) {
                 addProductBtn.onclick = () => showUploadSection(data.store_id, name, data.store_code);
             }
+            showUploadSection(data.store_id, name, data.store_code);
         } catch (err) {
             setStatus(storeStatus, 'error', `❌ Error: ${err.message}`);
         }
@@ -274,6 +309,7 @@ if (uploadForm) {
             setStatus(uploadStatus, 'success', '🎉 Product added successfully!');
             uploadForm.reset();
             preview.innerHTML = '';
+            loadProducts();
             if (productSuccessActions) productSuccessActions.style.display = 'flex';
             if (addAnotherProductBtn) {
                 addAnotherProductBtn.onclick = () => {
@@ -287,7 +323,6 @@ if (uploadForm) {
                     productSuccessActions.style.display = 'none';
                     hideStatus(uploadStatus);
                     loadProducts();
-                    // Scroll to products section
                     document.getElementById('productsList').scrollIntoView({behavior: 'smooth'});
                 };
             }
