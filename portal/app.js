@@ -21,10 +21,42 @@ const addProductBtn = document.getElementById('addProductBtn');
 const productSuccessActions = document.getElementById('productSuccessActions');
 const addAnotherProductBtn = document.getElementById('addAnotherProductBtn');
 const viewProductsBtn = document.getElementById('viewProductsBtn');
+const existingStoreCode = document.getElementById('existingStoreCode');
+const loadStoreBtn = document.getElementById('loadStoreBtn');
 
 let selectedSource = 'file';
 let currentStore = null;
 const apiBase = '/api/portal';
+const activeStoreKey = 'active_store_code';
+
+function isValidStoreCode(code) {
+    return typeof code === 'string' && /^VIBE-[A-Z0-9]{5}$/.test(code.trim());
+}
+
+function getActiveStoreCode() {
+    try {
+        const code = localStorage.getItem(activeStoreKey);
+        return isValidStoreCode(code) ? code.trim() : null;
+    } catch (err) {
+        return null;
+    }
+}
+
+function saveActiveStoreCode(storeCode) {
+    try {
+        localStorage.setItem(activeStoreKey, storeCode);
+    } catch (err) {
+        console.warn('Unable to save active store code', err);
+    }
+}
+
+function clearActiveStoreCode() {
+    try {
+        localStorage.removeItem(activeStoreKey);
+    } catch (err) {
+        console.warn('Unable to clear active store code', err);
+    }
+}
 
 function showPortalScreen() {
     welcomePage.classList.add('hidden');
@@ -52,8 +84,8 @@ function hideStatus(element) {
     element.style.display = 'none';
 }
 
-function showUploadSection(storeId, storeName, storeCode = null) {
-    currentStore = { id: storeId, name: storeName, code: storeCode };
+function showUploadSection(storeName, storeCode) {
+    currentStore = { name: storeName, code: storeCode };
     uploadSection.style.display = 'block';
     document.getElementById('store-section').style.display = 'none';
     if (storeInfo) {
@@ -64,6 +96,7 @@ function showUploadSection(storeId, storeName, storeCode = null) {
     hideStatus(uploadStatus);
     if (storeSuccessActions) storeSuccessActions.style.display = 'none';
     if (productSuccessActions) productSuccessActions.style.display = 'none';
+    productsList.innerHTML = `<div class="no-products">Loading products…</div>`;
     loadProducts();
 }
 
@@ -71,19 +104,13 @@ function showStoreForm() {
     currentStore = null;
     uploadSection.style.display = 'none';
     document.getElementById('store-section').style.display = 'block';
-    if (localStorage.getItem('vibeshop_store_id')) {
-        const storedName = localStorage.getItem('vibeshop_store_name') || '';
-        const storedPhone = localStorage.getItem('vibeshop_store_phone') || '';
-        const storedLocation = localStorage.getItem('vibeshop_store_location') || '';
-        document.getElementById('shopName').value = storedName;
-        document.getElementById('phoneNumber').value = storedPhone;
-        document.getElementById('location').value = storedLocation;
-        if (storeInfo) {
-            const codeDisplay = localStorage.getItem('vibeshop_store_code') ? ` (Code: ${localStorage.getItem('vibeshop_store_code')})` : '';
-            storeInfo.textContent = `Current store saved: ${storedName}${codeDisplay}`;
-        }
-    }
+    document.getElementById('shopName').value = '';
+    document.getElementById('phoneNumber').value = '';
+    document.getElementById('location').value = '';
+    if (existingStoreCode) existingStoreCode.value = '';
+    if (storeInfo) storeInfo.textContent = '';
     hideStatus(storeStatus);
+    hideStatus(uploadStatus);
     if (storeSuccessActions) storeSuccessActions.style.display = 'none';
     if (productSuccessActions) productSuccessActions.style.display = 'none';
 }
@@ -107,45 +134,63 @@ function validatePhoneNumber(value) {
     return /^\d{9,}$/.test(digits);
 }
 
+function renderNoProducts() {
+    productsList.innerHTML = `
+        <div class="no-products">
+            <div class="empty-icon">📦</div>
+            <h3>You don't have any products yet</h3>
+            <p>Add your first product to start selling on VibeShop!</p>
+            <button class="btn-primary" type="button" id="focusProductForm">Add Your First Product</button>
+        </div>`;
+    const focusButton = document.getElementById('focusProductForm');
+    if (focusButton) {
+        focusButton.addEventListener('click', () => {
+            document.getElementById('productName').focus();
+            document.getElementById('productName').scrollIntoView({ behavior: 'smooth' });
+        });
+    }
+}
+
+function renderProducts(products) {
+    let html = '';
+    products.forEach(p => {
+        const img = p.image_url || '/portal/no-image.png';
+        const desc = p.description || 'No description';
+        html += `
+            <div class="product-card">
+                <img src="${img}" alt="${p.name}" class="product-image" onerror="this.src='/portal/no-image.png'">
+                <div class="product-info">
+                    <h3>${p.name}</h3>
+                    <div class="product-price">${p.price} UGX</div>
+                    <div class="product-description">${desc}</div>
+                    <small style="color: #666; font-size: 12px;">Store Code: ${currentStore?.code || 'N/A'}</small>
+                </div>
+                <div class="product-actions">
+                    <button class="btn-danger" type="button" data-product-id="${p.product_id}">Delete</button>
+                </div>
+            </div>`;
+    });
+    productsList.innerHTML = html;
+    document.querySelectorAll('.product-actions button[data-product-id]').forEach((button) => {
+        button.addEventListener('click', () => deleteProduct(button.dataset.productId));
+    });
+}
+
 async function loadProducts() {
-    if (!currentStore) return;
+    if (!currentStore || !currentStore.code) return;
+    productsList.innerHTML = '<div class="no-products">Loading products…</div>';
     try {
-        const resp = await fetch(`${apiBase}/products?store_id=${currentStore.id}`);
-        if (!resp.ok) throw new Error('Failed to load products');
+        const resp = await fetch(`${apiBase}/products?store_code=${encodeURIComponent(currentStore.code)}`);
         const data = await resp.json();
-        const products = data.products || [];
+        if (!resp.ok) throw new Error(data.message || 'Failed to load products');
+        const products = Array.isArray(data.products) ? data.products : [];
         if (products.length === 0) {
-            productsList.innerHTML = `
-                <div class="no-products">
-                    <div class="empty-icon">📦</div>
-                    <h3>You don't have any products yet</h3>
-                    <p>Add your first product to start selling on VibeShop!</p>
-                    <button class="btn-primary" onclick="document.getElementById('productName').focus(); document.getElementById('productName').scrollIntoView({behavior: 'smooth'});">Add Your First Product</button>
-                </div>`;
+            renderNoProducts();
             return;
         }
-        let html = '';
-        products.forEach(p => {
-            const img = p.image_url || '/portal/no-image.png';
-            const desc = p.description || 'No description';
-            const storeId = p.store_id || currentStore?.id || 'N/A';
-            html += `
-                <div class="product-card">
-                    <img src="${img}" alt="${p.name}" class="product-image" onerror="this.src='/portal/no-image.png'">
-                    <div class="product-info">
-                        <h3>${p.name}</h3>
-                        <div class="product-price">${p.price} UGX</div>
-                        <div class="product-description">${desc}</div>
-                        <small style="color: #666; font-size: 12px;">Store ID: ${storeId}</small>
-                    </div>
-                    <div class="product-actions">
-                        <button class="btn-danger" onclick="deleteProduct(${p.product_id})">Delete</button>
-                    </div>
-                </div>`;
-        });
-        productsList.innerHTML = html;
+        renderProducts(products);
     } catch (err) {
-        productsList.innerHTML = `<div class="no-products">⚠️ Error loading products: ${err.message}</div>`;
+        productsList.innerHTML = `<div class="no-products">⚠️ ${err.message}</div>`;
     }
 }
 
@@ -190,27 +235,69 @@ if (sourceUrl) {
     });
 }
 
-window.addEventListener('DOMContentLoaded', () => {
+async function fetchStoreData(storeCode) {
+    try {
+        const resp = await fetch(`/store/${encodeURIComponent(storeCode)}`);
+        const data = await resp.json();
+        if (!resp.ok || data.status !== 'success') return null;
+        return data.store || null;
+    } catch (err) {
+        return null;
+    }
+}
+
+function setButtonState(button, disabled) {
+    if (!button) return;
+    button.disabled = disabled;
+    button.style.opacity = disabled ? '0.6' : '1';
+}
+
+window.addEventListener('DOMContentLoaded', async () => {
     showWelcomeScreen();
     if (getStartedBtn) getStartedBtn.addEventListener('click', showPortalScreen);
     if (backToWelcomeBtn) backToWelcomeBtn.addEventListener('click', showWelcomeScreen);
     if (homeBtn) homeBtn.addEventListener('click', showWelcomeScreen);
     if (changeStoreBtn) changeStoreBtn.addEventListener('click', showStoreForm);
-    if (localStorage.getItem('vibeshop_store_id')) {
-        const storeId = parseInt(localStorage.getItem('vibeshop_store_id'));
-        const storeName = localStorage.getItem('vibeshop_store_name');
-        const storeCode = localStorage.getItem('vibeshop_store_code');
-        if (storeId && storeName) {
-            showPortalScreen();
-            showUploadSection(storeId, storeName, storeCode);
+    if (loadStoreBtn) loadStoreBtn.addEventListener('click', async () => {
+        hideStatus(storeStatus);
+        const code = existingStoreCode?.value.trim().toUpperCase();
+        if (!isValidStoreCode(code)) {
+            setStatus(storeStatus, 'error', '⚠️ Enter a valid store code like VIBE-ABCDE');
+            return;
         }
+        setStatus(storeStatus, 'info', '⏳ Looking up store...');
+        setButtonState(loadStoreBtn, true);
+        const store = await fetchStoreData(code);
+        setButtonState(loadStoreBtn, false);
+        if (!store) {
+            setStatus(storeStatus, 'error', '❌ Store code not found. Please check the code and try again.');
+            return;
+        }
+        saveActiveStoreCode(code);
+        showPortalScreen();
+        showUploadSection(store.name, code);
+    });
+    const activeCode = getActiveStoreCode();
+    if (activeCode) {
+        const store = await fetchStoreData(activeCode);
+        if (store) {
+            showPortalScreen();
+            showUploadSection(store.name, activeCode);
+            return;
+        }
+        clearActiveStoreCode();
+        setStatus(storeStatus, 'error', '⚠️ Saved store code is invalid. Please enter a store code or create a new store.');
+        showStoreForm();
+        return;
     }
 });
+
 
 if (storeForm) {
     storeForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         hideStatus(storeStatus);
+        const submitButton = storeForm.querySelector('button[type="submit"]');
         const name = document.getElementById('shopName').value.trim();
         const phone = document.getElementById('phoneNumber').value.trim();
         const location = document.getElementById('location').value.trim();
@@ -222,11 +309,7 @@ if (storeForm) {
             setStatus(storeStatus, 'error', '⚠️ Please enter a valid international phone number: + followed by at least 9 digits');
             return;
         }
-        const savedPhone = localStorage.getItem('vibeshop_store_phone');
-        if (savedPhone && savedPhone === phone) {
-            setStatus(storeStatus, 'error', '⚠️ You already have a store saved for this WhatsApp number. Use the existing store or change the number to create a new one.');
-            return;
-        }
+        setButtonState(submitButton, true);
         setStatus(storeStatus, 'info', '⏳ Creating store...');
         try {
             const fd = new FormData();
@@ -242,21 +325,21 @@ if (storeForm) {
                 } else {
                     setStatus(storeStatus, 'error', `❌ ${errorMsg}`);
                 }
+                setButtonState(submitButton, false);
                 return;
             }
-            setStatus(storeStatus, 'success', `🎉 Store created successfully!\n\nYour Store Code: ${data.store_code}`);
-            localStorage.setItem('vibeshop_store_id', data.store_id);
-            localStorage.setItem('vibeshop_store_name', name);
-            localStorage.setItem('vibeshop_store_code', data.store_code);
-            localStorage.setItem('vibeshop_store_phone', phone);
-            localStorage.setItem('vibeshop_store_location', location);
+            const storeCode = data.store_code;
+            setStatus(storeStatus, 'success', `🎉 Store created successfully!\n\nYour Store Code: ${storeCode}`);
+            saveActiveStoreCode(storeCode);
             if (storeSuccessActions) storeSuccessActions.style.display = 'flex';
             if (addProductBtn) {
-                addProductBtn.onclick = () => showUploadSection(data.store_id, name, data.store_code);
+                addProductBtn.onclick = () => showUploadSection(name, storeCode);
             }
-            showUploadSection(data.store_id, name, data.store_code);
+            showUploadSection(name, storeCode);
         } catch (err) {
             setStatus(storeStatus, 'error', `❌ Error: ${err.message}`);
+        } finally {
+            setButtonState(submitButton, false);
         }
     });
 }
@@ -265,8 +348,9 @@ if (uploadForm) {
     uploadForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         hideStatus(uploadStatus);
-        if (!currentStore) {
-            setStatus(uploadStatus, 'error', 'No store selected');
+        const submitButton = uploadForm.querySelector('button[type="submit"]');
+        if (!currentStore || !currentStore.code) {
+            setStatus(uploadStatus, 'error', 'No active store selected');
             return;
         }
         const productName = document.getElementById('productName').value.trim();
@@ -277,7 +361,7 @@ if (uploadForm) {
             return;
         }
         const formData = new FormData();
-        formData.append('store_id', currentStore.id);
+        formData.append('store_code', currentStore.code);
         formData.append('name', productName);
         formData.append('price', Number(productPrice));
         if (productDesc) formData.append('description', productDesc);
@@ -299,6 +383,8 @@ if (uploadForm) {
             formData.append('image_url', imageUrl);
             preview.innerHTML = `<img src="${imageUrl}" alt="Preview" />`;
         }
+        setButtonState(submitButton, true);
+        setStatus(uploadStatus, 'info', '⏳ Adding product...');
         try {
             const resp = await fetch(`${apiBase}/upload-product`, { method: 'POST', body: formData });
             const data = await resp.json();
@@ -328,6 +414,8 @@ if (uploadForm) {
             }
         } catch (err) {
             setStatus(uploadStatus, 'error', `❌ Error: ${err.message}`);
+        } finally {
+            setButtonState(submitButton, false);
         }
     });
 }
