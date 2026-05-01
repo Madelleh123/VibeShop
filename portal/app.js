@@ -107,8 +107,11 @@ function showStoreForm() {
     document.getElementById('shopName').value = '';
     document.getElementById('phoneNumber').value = '';
     document.getElementById('location').value = '';
-    if (existingStoreCode) existingStoreCode.value = '';
-    if (storeInfo) storeInfo.textContent = '';
+    const activeCode = getActiveStoreCode();
+    if (existingStoreCode) existingStoreCode.value = activeCode || '';
+    if (storeInfo) {
+        storeInfo.textContent = activeCode ? `Saved store code available: ${activeCode}` : '';
+    }
     hideStatus(storeStatus);
     hideStatus(uploadStatus);
     if (storeSuccessActions) storeSuccessActions.style.display = 'none';
