@@ -671,37 +671,47 @@
             </div>
             <!-- STORE SECTION -->
             <section id="store-section" class="section">
-                <div class="section-title">Step 1: Create Your Store</div>
+                <div class="section-title">Create Your Store</div>
+                <p style="color: #666; font-size: 14px; margin-bottom: 20px;">This takes less than 1 minute</p>
+                <div style="text-align: center; margin-bottom: 20px;">
+                    <a href="#" id="toggleLoadStore" style="color: #667eea; text-decoration: none; font-size: 14px;">Already have a store? Enter code</a>
+                </div>
                 <form id="storeForm">
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="shopName">Store Name</label>
-                            <input id="shopName" type="text" required placeholder="My Fashion Store" />
+                    <div id="createStoreFields">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="shopName">Store Name</label>
+                                <input id="shopName" type="text" required placeholder="My Fashion Store" />
+                            </div>
+                            <div class="form-group">
+                                <label for="phoneNumber">WhatsApp Phone Number</label>
+                                <input id="phoneNumber" type="tel" required placeholder="+256771234567" />
+                                <small class="field-note">Start with + and use digits only. Example: +256771234567</small>
+                            </div>
                         </div>
                         <div class="form-group">
-                            <label for="phoneNumber">WhatsApp Phone Number</label>
-                            <input id="phoneNumber" type="tel" required placeholder="+256771234567" />
-                            <small class="field-note">Start with + and use digits only. Example: +256771234567</small>
+                            <label for="location">Location</label>
+                            <input id="location" type="text" required placeholder="Kampala Market, Uganda" />
+                        </div>
+                        <div class="button-group">
+                            <button type="submit" class="btn-primary">Create my store</button>
                         </div>
                     </div>
-                    <div class="form-group">
-                        <label for="location">Location</label>
-                        <input id="location" type="text" required placeholder="Kampala Market, Uganda" />
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="existingStoreCode">Existing Store Code</label>
-                            <input id="existingStoreCode" type="text" placeholder="VIBE-ABCDE" />
-                            <small class="field-note">Enter an existing store code to switch to a saved store.</small>
+                    <div id="loadStoreFields" style="display: none;">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="existingStoreCode">Store Code</label>
+                                <input id="existingStoreCode" type="text" placeholder="VIBE-ABCDE" />
+                                <small class="field-note">Enter your store code to load an existing store.</small>
+                            </div>
+                            <div class="form-group" style="align-self: end;">
+                                <button id="loadStoreBtn" type="button" class="btn-secondary">Load Store</button>
+                            </div>
                         </div>
-                        <div class="form-group" style="align-self: end;">
-                            <button id="loadStoreBtn" type="button" class="btn-secondary">Load Store</button>
+                        <div class="button-group">
+                            <button type="button" id="backToCreate" class="btn-secondary">Back to Create Store</button>
                         </div>
                     </div>
-                    <div class="button-group">
-                        <button type="submit" class="btn-primary">Create Store</button>
-                    </div>
-                    <div class="field-note">If you already have a store saved, use the same WhatsApp number. Duplicate stores with the same phone can create separate listings.</div>
                     <div id="storeStatus" class="status"></div>
                     <div id="storeSuccessActions" class="button-group" style="display:none;">
                         <button id="addProductBtn" type="button" class="btn-primary">Add Product</button>

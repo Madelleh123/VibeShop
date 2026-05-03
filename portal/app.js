@@ -23,6 +23,10 @@ const addAnotherProductBtn = document.getElementById('addAnotherProductBtn');
 const viewProductsBtn = document.getElementById('viewProductsBtn');
 const existingStoreCode = document.getElementById('existingStoreCode');
 const loadStoreBtn = document.getElementById('loadStoreBtn');
+const toggleLoadStore = document.getElementById('toggleLoadStore');
+const backToCreate = document.getElementById('backToCreate');
+const createStoreFields = document.getElementById('createStoreFields');
+const loadStoreFields = document.getElementById('loadStoreFields');
 
 let selectedSource = 'file';
 let currentStore = null;
@@ -112,6 +116,9 @@ function showStoreForm() {
     if (storeInfo) {
         storeInfo.textContent = activeCode ? `Saved store code available: ${activeCode}` : '';
     }
+    // Reset to create mode
+    if (createStoreFields) createStoreFields.style.display = 'block';
+    if (loadStoreFields) loadStoreFields.style.display = 'none';
     hideStatus(storeStatus);
     hideStatus(uploadStatus);
     if (storeSuccessActions) storeSuccessActions.style.display = 'none';
@@ -261,6 +268,15 @@ window.addEventListener('DOMContentLoaded', async () => {
     if (backToWelcomeBtn) backToWelcomeBtn.addEventListener('click', showWelcomeScreen);
     if (homeBtn) homeBtn.addEventListener('click', showWelcomeScreen);
     if (changeStoreBtn) changeStoreBtn.addEventListener('click', showStoreForm);
+    if (toggleLoadStore) toggleLoadStore.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (createStoreFields) createStoreFields.style.display = 'none';
+        if (loadStoreFields) loadStoreFields.style.display = 'block';
+    });
+    if (backToCreate) backToCreate.addEventListener('click', () => {
+        if (createStoreFields) createStoreFields.style.display = 'block';
+        if (loadStoreFields) loadStoreFields.style.display = 'none';
+    });
     if (loadStoreBtn) loadStoreBtn.addEventListener('click', async () => {
         hideStatus(storeStatus);
         const code = existingStoreCode?.value.trim().toUpperCase();
