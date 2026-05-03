@@ -21,6 +21,8 @@ const addProductBtn = document.getElementById('addProductBtn');
 const productSuccessActions = document.getElementById('productSuccessActions');
 const addAnotherProductBtn = document.getElementById('addAnotherProductBtn');
 const viewProductsBtn = document.getElementById('viewProductsBtn');
+const shareStoreBtn = document.getElementById('shareStoreBtn');
+const shareDetails = document.getElementById('shareDetails');
 const existingStoreCode = document.getElementById('existingStoreCode');
 const loadStoreBtn = document.getElementById('loadStoreBtn');
 const toggleLoadStore = document.getElementById('toggleLoadStore');
@@ -100,6 +102,7 @@ function showUploadSection(storeName, storeCode) {
     hideStatus(uploadStatus);
     if (storeSuccessActions) storeSuccessActions.style.display = 'none';
     if (productSuccessActions) productSuccessActions.style.display = 'none';
+    if (shareDetails) hideStatus(shareDetails);
     productsList.innerHTML = `<div class="no-products">Loading products…</div>`;
     loadProducts();
 }
@@ -420,6 +423,7 @@ if (uploadForm) {
                 addAnotherProductBtn.onclick = () => {
                     productSuccessActions.style.display = 'none';
                     hideStatus(uploadStatus);
+                    if (shareDetails) hideStatus(shareDetails);
                     document.getElementById('productName').focus();
                 };
             }
@@ -427,8 +431,30 @@ if (uploadForm) {
                 viewProductsBtn.onclick = () => {
                     productSuccessActions.style.display = 'none';
                     hideStatus(uploadStatus);
+                    if (shareDetails) hideStatus(shareDetails);
                     loadProducts();
                     document.getElementById('productsList').scrollIntoView({behavior: 'smooth'});
+                };
+            }
+            if (shareStoreBtn) {
+                shareStoreBtn.onclick = () => {
+                    if (!currentStore || !currentStore.code) return;
+                    const storeCode = currentStore.code;
+                    const shareMessage = `Check my products on VibeShop: ${storeCode}`;
+                    const storeLink = `${window.location.origin}/store/${storeCode}`;
+                    if (navigator.clipboard?.writeText) {
+                        navigator.clipboard.writeText(`${shareMessage}\n${storeLink}`).catch(() => {});
+                    }
+                    if (shareDetails) {
+                        shareDetails.innerHTML = `
+                            <strong>Share your store</strong><br />
+                            Store code: <code>${storeCode}</code><br />
+                            Message: <code>${shareMessage}</code><br />
+                            Link: <a href="${storeLink}" target="_blank">${storeLink}</a><br />
+                            <small>Share text copied to clipboard</small>`;
+                        shareDetails.style.display = 'block';
+                    }
+                    setStatus(uploadStatus, 'success', '🎉 Product added successfully! Use the buttons below to continue.');
                 };
             }
         } catch (err) {
